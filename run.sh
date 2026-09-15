@@ -27,9 +27,9 @@ if [[ -n "${OPENAI_API_KEY:-}" ]]; then
   python -m app.ping
 fi
 if [[ -f .api.pid ]] && kill -0 "$(cat .api.pid)" 2>/dev/null; then
-  kill "$(cat .api.pid)"
+  kill -- "-$(cat .api.pid)" 2>/dev/null || kill "$(cat .api.pid)"
 fi
-nohup setsid python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 >api.log 2>&1 &
+nohup setsid python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app >api.log 2>&1 &
 echo $! > .api.pid
 for attempt in $(seq 1 30); do
   if curl -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then
