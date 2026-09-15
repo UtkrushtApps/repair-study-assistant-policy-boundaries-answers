@@ -29,6 +29,18 @@ fi
 if [[ -f .api.pid ]] && kill -0 "$(cat .api.pid)" 2>/dev/null; then
   kill "$(cat .api.pid)"
 fi
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 >api.log 2>&1 &
+nohup setsid python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 >api.log 2>&1 &
 echo $! > .api.pid
+for attempt in $(seq 1 30); do
+  if curl -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then
+    echo "API is running on port 8000 (log: api.log)"
+    break
+  fi
+  if [[ "$attempt" == "30" ]]; then
+    echo "API did not start" >&2
+    tail -20 api.log >&2 || true
+    exit 1
+  fi
+  sleep 1
+done
 echo "ready"
